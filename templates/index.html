@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Rewards</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            background-color: white;
+            color: #004977;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        header img {
+            width: auto;
+            height: 50px;
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+        }
+        header h1 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.5em;
+            margin: 0;
+        }
+        form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        button {
+            background-color: #004977;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: calc(50% - 10px);
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #003366;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f9;
+        }
+        h2 {
+            color: #004080;
+            text-align: center;
+            font-family: 'Merriweather', serif;
+        }
+        #pointsByMonth p {
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="/static/capOne.png" alt="Logo">
+        <h1>Transaction Rewards</h1>
+    </header>
+    <form id="transactionForm">
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date" required>
+        <label for="merchant">Merchant:</label>
+        <select id="merchant" name="merchant" required>
+            <option value="sportcheck">Sport Check</option>
+            <option value="tim_hortons">Tim Hortons</option>
+            <option value="subway">Subway</option>
+            <option value="other">Other</option>
+        </select>
+        <label for="amount">Amount (in dollars):</label>
+        <input type="number" id="amount" name="amount" step="0.01" required>
+        <button type="submit">Add Transaction</button>
+    </form>
+    <div class="button-container">
+        <button id="calculatePoints">Calculate Points</button>
+        <button id="resetTransactions">Reset Transactions</button>
+    </div>
+    <h2>Transactions</h2>
+    <table id="transactionsTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Merchant</th>
+                <th>Amount (in dollars)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <h2>Points by Month</h2>
+    <div id="pointsByMonth"></div>
+    <footer>
+        <p>Capital One &copy; 2024</p>
+    </footer>
+    <script src="/static/app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const dateInput = document.getElementById("date");
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        });
+    </script>
+</body>
+</html>

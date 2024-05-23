@@ -1,0 +1,25 @@
+# Transaction Rewards Calculator
+
+This project is a web app to calculating rewards points based on credit card transactions at various merchants. It uses set rules and applies the rules on transaction totals for each month, attempting to maximize the points for users.
+
+## Features
+
+- Adding new transactions with date, merchant, and amount
+- Calculating rewards points for transactions for each month
+- Display the total points earned per month
+- Reseting all transactions
+
+## Technologies Used
+
+- Python, Flask for backend, rules logic, hosting
+- HTML, CSS, JavaScript for the frontend
+
+## How to run
+
+- Install Flask using pip install
+- Start Flask application with python app.py in terminal
+- Open web browser 'http://127.0.0.1:5000'
+
+## How to test
+
+- python -m unittest discover -s unittests -p "testCalculateRewards.py"
