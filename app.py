@@ -5,11 +5,15 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"
+# app.secret_key = "your_secret_key"
+app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 
+# "DATABASE_URL",
+# "postgres://rodozpcvyghbpw:681f6f4b0a8fc3e2bad459a334620db20cca17cf1e1686e73ee8263dceb5dd89@ec2-54-144-112-84.compute-1.amazonaws.com:5432/d2ii2ugo800k94"
 # Use environment variable for database URL or default to a local PostgreSQL database
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URL", "postgresql://ryanhu@localhost/capitalone"
+    "DATABASE_URL",
+    "postgres://rodozpcvyghbpw:681f6f4b0a8fc3e2bad459a334620db20cca17cf1e1686e73ee8263dceb5dd89@ec2-54-144-112-84.compute-1.amazonaws.com:5432/d2ii2ugo800k94",
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
