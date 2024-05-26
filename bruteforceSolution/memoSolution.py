@@ -129,13 +129,8 @@ transactions = {
     "T01": {
         "date": "2021-05-09",
         "merchant_code": "sportcheck",
-        "amount_cents": 7326,
-    },
-    "T02": {
-        "date": "2021-05-10",
-        "merchant_code": "tim_hortons",
-        "amount_cents": 1321,
-    },
+        "amount_cents": 20000,
+    }
 }
 
 print(calculateRewards(transactions))

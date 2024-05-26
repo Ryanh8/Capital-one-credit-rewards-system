@@ -5,6 +5,7 @@ from collections import defaultdict
 app = Flask(__name__)
 
 
+# Validation function
 def validator(transaction):
     required = ["date", "merchant_code", "amount_cents"]
     for field in required:
@@ -17,10 +18,10 @@ def validator(transaction):
                 datetime.strptime(transaction[field], "%Y-%m-%d")
             except ValueError:
                 return False
-
     return True
 
 
+# Rules
 def rule1(sportscheckAmt, timhortonsAmt, subwayAmt, otherAmt):
     if sportscheckAmt >= 75 and timhortonsAmt >= 25 and subwayAmt >= 25:
         return (
@@ -92,10 +93,10 @@ def rule7(sportscheckAmt, timhortonsAmt, subwayAmt, otherAmt):
     return points, 0, 0, 0, 0
 
 
-def calculateRewards(transactions):
+def calculate_rewards(transactions):
     # Convert transaction amounts to dollars and keep sum totals of each merchant
     totals = {"sportcheck": 0, "tim_hortons": 0, "subway": 0}
-    otherAmt = 0
+    other_amt = 0
 
     for transaction in transactions.values():
         # skip invalid transactions
@@ -109,18 +110,18 @@ def calculateRewards(transactions):
                 totals[transaction["merchant_code"]], 2
             )
         else:
-            otherAmt += transaction["amount_dollars"]
-            otherAmt = round(otherAmt, 2)
+            other_amt += transaction["amount_dollars"]
+            other_amt = round(other_amt, 2)
 
     # Initialize dictionary to store currPoints for each state
-    currPointsDict = {}
+    curr_points_dict = {}
     # Initialize the first state, currPoints is 0 and original totals
-    currPointsDict[
+    curr_points_dict[
         (
             totals["sportcheck"],
             totals["tim_hortons"],
             totals["subway"],
-            otherAmt,
+            other_amt,
         )
     ] = 0
 
@@ -128,54 +129,65 @@ def calculateRewards(transactions):
     rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7]
 
     # Initialize queue with the first state
-    queue = [(totals["sportcheck"], totals["tim_hortons"], totals["subway"], otherAmt)]
+    queue = [(totals["sportcheck"], totals["tim_hortons"], totals["subway"], other_amt)]
 
     while queue:
         # Get the first state in the queue
         state = queue.pop(0)
 
-        currPoints = currPointsDict[state]
+        curr_points = curr_points_dict[state]
 
-        currSportcheckAmt, currTimHortonsAmt, currSubwayAmt, currOtherAmt = state
+        curr_sportcheck_amt, curr_tim_hortons_amt, curr_subway_amt, curr_other_amt = (
+            state
+        )
 
         # Iterate through all the rules
         for rule in rules:
             # Apply the rule to the state
-            newPoints, newSportcheck, newTimhortons, newSubway, newOther = rule(
-                currSportcheckAmt, currTimHortonsAmt, currSubwayAmt, currOtherAmt
+            new_points, new_sportcheck, new_timhortons, new_subway, new_other = rule(
+                curr_sportcheck_amt,
+                curr_tim_hortons_amt,
+                curr_subway_amt,
+                curr_other_amt,
             )
             # If the rule applied current points is greater than 0, otherwise continue
-            if newPoints > 0:
+            if new_points > 0:
                 # Calculate the new current points
-                new_currPoints = currPoints + newPoints
-                # If the new state has not been visited or the new currPoints is greater than the previous currPoints
+                new_curr_points = curr_points + new_points
+                # If the new state has not been visited or the new curr_points is greater than the previous curr_points
                 if (
-                    newSportcheck,
-                    newTimhortons,
-                    newSubway,
-                    newOther,
-                ) not in currPointsDict or new_currPoints > currPointsDict[
-                    (newSportcheck, newTimhortons, newSubway, newOther)
+                    new_sportcheck,
+                    new_timhortons,
+                    new_subway,
+                    new_other,
+                ) not in curr_points_dict or new_curr_points > curr_points_dict[
+                    (new_sportcheck, new_timhortons, new_subway, new_other)
                 ]:
-                    # Update the currPoints
-                    currPointsDict[
-                        (newSportcheck, newTimhortons, newSubway, newOther)
-                    ] = new_currPoints
+                    # Update the curr_points
+                    curr_points_dict[
+                        (new_sportcheck, new_timhortons, new_subway, new_other)
+                    ] = new_curr_points
                     # Add the new state to the queue
-                    queue.append((newSportcheck, newTimhortons, newSubway, newOther))
+                    queue.append(
+                        (new_sportcheck, new_timhortons, new_subway, new_other)
+                    )
 
     # Maximum points will be the maximum value in the dictionary
-    maxPoints = max(currPointsDict.values())
-    return int(maxPoints)
+    max_points = max(curr_points_dict.values())
+    return int(max_points)
 
 
-def groupTransactionsByMonth(transactions):
-    byMonth = defaultdict(dict)
+def calculate_points_for_transaction(transaction):
+    return calculate_rewards({1: transaction})
+
+
+def group_transactions_by_month(transactions):
+    by_month = defaultdict(dict)
     for key, transaction in transactions.items():
         date = datetime.strptime(transaction["date"], "%Y-%m-%d")
         month = date.strftime("%Y-%m")
-        byMonth[month][key] = transaction
-    return byMonth
+        by_month[month][key] = transaction
+    return by_month
 
 
 @app.route("/")
@@ -184,18 +196,24 @@ def index():
 
 
 @app.route("/calculate_points", methods=["POST"])
-def calculatePoints():
+def calculate_points():
     transactions = request.json
     if not transactions:
         return jsonify({"error": "No transactions provided"}), 400
-    byMonth = groupTransactionsByMonth(transactions)
+    by_month = group_transactions_by_month(transactions)
 
-    monthDict = {}
-    for month, transactions in byMonth.items():
-        totalPoints = calculateRewards(transactions)
-        monthDict[month] = totalPoints
+    month_dict = {}
+    for month, transactions in by_month.items():
+        total_points = calculate_rewards(transactions)
+        transaction_rewards = {
+            k: calculate_points_for_transaction(v) for k, v in transactions.items()
+        }
+        month_dict[month] = {
+            "total_points": total_points,
+            "transaction_rewards": transaction_rewards,
+        }
 
-    return jsonify(monthDict)
+    return jsonify(month_dict)
 
 
 if __name__ == "__main__":

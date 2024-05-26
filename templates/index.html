@@ -11,8 +11,11 @@
             font-family: 'Roboto', sans-serif;
             background-color: #f4f4f9;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         header {
             background-color: white;
@@ -33,6 +36,10 @@
             font-family: 'Merriweather', serif;
             font-size: 1.5em;
             margin: 0;
+        }
+        .content {
+            flex: 1;
+            padding: 20px;
         }
         form {
             background-color: white;
@@ -118,9 +125,6 @@
             padding: 10px;
             background-color: white;
             box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            bottom: 0;
-            width: 100%;
         }
     </style>
 </head>
@@ -129,37 +133,40 @@
         <img src="/static/capOne.png" alt="Logo">
         <h1>Transaction Rewards</h1>
     </header>
-    <form id="transactionForm">
-        <label for="date">Date:</label>
-        <input type="date" id="date" name="date" required>
-        <label for="merchant">Merchant:</label>
-        <select id="merchant" name="merchant" required>
-            <option value="sportcheck">Sport Check</option>
-            <option value="tim_hortons">Tim Hortons</option>
-            <option value="subway">Subway</option>
-            <option value="other">Other</option>
-        </select>
-        <label for="amount">Amount (in dollars):</label>
-        <input type="number" id="amount" name="amount" step="0.01" required>
-        <button type="submit">Add Transaction</button>
-    </form>
-    <div class="button-container">
-        <button id="calculatePoints">Calculate Points</button>
-        <button id="resetTransactions">Reset Transactions</button>
+    <div class="content">
+        <form id="transactionForm">
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date" required>
+            <label for="merchant">Merchant:</label>
+            <select id="merchant" name="merchant" required>
+                <option value="sportcheck">Sport Check</option>
+                <option value="tim_hortons">Tim Hortons</option>
+                <option value="subway">Subway</option>
+                <option value="other">Other</option>
+            </select>
+            <label for="amount">Amount (in dollars):</label>
+            <input type="number" id="amount" name="amount" step="0.01" required>
+            <button type="submit">Add Transaction</button>
+        </form>
+        <div class="button-container">
+            <button id="calculatePoints">Calculate Points</button>
+            <button id="resetTransactions">Reset Transactions</button>
+        </div>
+        <h2>Transactions</h2>
+        <table id="transactionsTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Merchant</th>
+                    <th>Amount (in dollars)</th>
+                    <th>Max Points per Transaction</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <h2>Points by Month</h2>
+        <div id="pointsByMonth"></div>
     </div>
-    <h2>Transactions</h2>
-    <table id="transactionsTable">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Merchant</th>
-                <th>Amount (in dollars)</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <h2>Points by Month</h2>
-    <div id="pointsByMonth"></div>
     <footer>
         <p>Capital One &copy; 2024</p>
     </footer>

@@ -18,18 +18,41 @@ document.addEventListener("DOMContentLoaded", function () {
             const transactionId = "T" + (Object.keys(transactions).length + 1).toString().padStart(2, '0');
             const amountCents = Math.round(amount * 100);
 
-            transactions[transactionId] = {
+            const transaction = {
                 date: date,
                 merchant_code: merchant,
                 amount_cents: amountCents
             };
 
+            transactions[transactionId] = transaction;
+
             const newRow = transactionsTable.insertRow();
+            newRow.setAttribute("data-id", transactionId);
             newRow.insertCell(0).appendChild(document.createTextNode(date));
             newRow.insertCell(1).appendChild(document.createTextNode(merchant.replace('_', ' ')));
             newRow.insertCell(2).appendChild(document.createTextNode(amount.toFixed(2)));
+            const pointsCell = newRow.insertCell(3);
+            pointsCell.appendChild(document.createTextNode('Pending...'));
+
+            fetch("/calculate_points", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ transactionId: transaction })
+            })
+            .then(response => response.json())
+            .then(data => {
+                pointsCell.textContent = data.points + ' points';
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                pointsCell.textContent = 'Error';
+            });
 
             form.reset();
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("date").value = today;
         }
     });
 
@@ -44,10 +67,17 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(response => response.json())
         .then(data => {
             pointsByMonthDiv.innerHTML = "";
-            for (const [month, points] of Object.entries(data)) {
+            for (const [month, details] of Object.entries(data)) {
                 const p = document.createElement("p");
-                p.textContent = `${month}: ${points} points`;
+                p.textContent = `${month}: ${details.total_points} points`;
                 pointsByMonthDiv.appendChild(p);
+
+                for (const [transactionId, maxPoints] of Object.entries(details.transaction_rewards)) {
+                    const row = transactionsTable.querySelector(`tr[data-id='${transactionId}']`);
+                    if (row) {
+                        row.cells[3].textContent = maxPoints + ' points';
+                    }
+                }
             }
         })
         .catch(error => console.error("Error:", error));
