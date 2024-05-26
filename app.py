@@ -1,12 +1,40 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from datetime import datetime
 from collections import defaultdict
+from flask_sqlalchemy import SQLAlchemy
 import os
 
 app = Flask(__name__)
+app.secret_key = "your_secret_key"
+
+# Use environment variable for database URL or default to a local PostgreSQL database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "postgresql://ryanhu@localhost/capitalone"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
 
 
-# Validation function
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+
+
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(10), nullable=False)
+    merchant_code = db.Column(db.String(50), nullable=False)
+    amount_cents = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+
+def create_app():
+    with app.app_context():
+        db.create_all()
+
+
 def validator(transaction):
     required = ["date", "merchant_code", "amount_cents"]
     for field in required:
@@ -22,7 +50,6 @@ def validator(transaction):
     return True
 
 
-# Rules
 def rule1(sportscheckAmt, timhortonsAmt, subwayAmt, otherAmt):
     if sportscheckAmt >= 75 and timhortonsAmt >= 25 and subwayAmt >= 25:
         return (
@@ -95,12 +122,10 @@ def rule7(sportscheckAmt, timhortonsAmt, subwayAmt, otherAmt):
 
 
 def calculate_rewards(transactions):
-    # Convert transaction amounts to dollars and keep sum totals of each merchant
     totals = {"sportcheck": 0, "tim_hortons": 0, "subway": 0}
     other_amt = 0
 
     for transaction in transactions.values():
-        # skip invalid transactions
         if not validator(transaction):
             continue
         transaction["amount_dollars"] = round(transaction["amount_cents"] / 100, 2)
@@ -114,66 +139,42 @@ def calculate_rewards(transactions):
             other_amt += transaction["amount_dollars"]
             other_amt = round(other_amt, 2)
 
-    # Initialize dictionary to store currPoints for each state
-    curr_points_dict = {}
-    # Initialize the first state, currPoints is 0 and original totals
-    curr_points_dict[
+    curr_points_dict = {
         (
             totals["sportcheck"],
             totals["tim_hortons"],
             totals["subway"],
             other_amt,
-        )
-    ] = 0
+        ): 0
+    }
 
-    # Store all the rules in a list
     rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7]
-
-    # Initialize queue with the first state
     queue = [(totals["sportcheck"], totals["tim_hortons"], totals["subway"], other_amt)]
 
     while queue:
-        # Get the first state in the queue
         state = queue.pop(0)
-
         curr_points = curr_points_dict[state]
-
         curr_sportcheck_amt, curr_tim_hortons_amt, curr_subway_amt, curr_other_amt = (
             state
         )
 
-        # Iterate through all the rules
         for rule in rules:
-            # Apply the rule to the state
-            new_points, new_sportcheck, new_timhortons, new_subway, new_other = rule(
+            new_points, new_sportcheck, new_tim_hortons, new_subway, new_other = rule(
                 curr_sportcheck_amt,
                 curr_tim_hortons_amt,
                 curr_subway_amt,
                 curr_other_amt,
             )
-            # If the rule applied current points is greater than 0, otherwise continue
             if new_points > 0:
-                # Calculate the new current points
                 new_curr_points = curr_points + new_points
-                # If the new state has not been visited or the new curr_points is greater than the previous curr_points
+                new_state = (new_sportcheck, new_tim_hortons, new_subway, new_other)
                 if (
-                    new_sportcheck,
-                    new_timhortons,
-                    new_subway,
-                    new_other,
-                ) not in curr_points_dict or new_curr_points > curr_points_dict[
-                    (new_sportcheck, new_timhortons, new_subway, new_other)
-                ]:
-                    # Update the curr_points
-                    curr_points_dict[
-                        (new_sportcheck, new_timhortons, new_subway, new_other)
-                    ] = new_curr_points
-                    # Add the new state to the queue
-                    queue.append(
-                        (new_sportcheck, new_timhortons, new_subway, new_other)
-                    )
+                    new_state not in curr_points_dict
+                    or new_curr_points > curr_points_dict[new_state]
+                ):
+                    curr_points_dict[new_state] = new_curr_points
+                    queue.append(new_state)
 
-    # Maximum points will be the maximum value in the dictionary
     max_points = max(curr_points_dict.values())
     return int(max_points)
 
@@ -193,11 +194,49 @@ def group_transactions_by_month(transactions):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    user_id = session["user_id"]
+    transactions = Transaction.query.filter_by(user_id=user_id).all()
+    return render_template("index.html", transactions=transactions)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        new_user = User(username=username, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        session["user_id"] = new_user.id
+        return redirect(url_for("index"))
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        user = User.query.filter_by(username=username).first()
+        if user and user.password == password:
+            session["user_id"] = user.id
+            return redirect(url_for("index"))
+        return "Invalid username or password"
+    return render_template("login.html")
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop("user_id", None)
+    return redirect(url_for("login"))
 
 
 @app.route("/calculate_points", methods=["POST"])
 def calculate_points():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
     transactions = request.json
     if not transactions:
         return jsonify({"error": "No transactions provided"}), 400
@@ -217,6 +256,41 @@ def calculate_points():
     return jsonify(month_dict)
 
 
+@app.route("/transactions", methods=["POST"])
+def add_transaction():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json()
+    new_transaction = Transaction(
+        user_id=session["user_id"],
+        date=data["date"],
+        merchant_code=data["merchant_code"],
+        amount_cents=data["amount_cents"],
+    )
+    db.session.add(new_transaction)
+    db.session.commit()
+    return redirect(url_for("index"))
+    # return jsonify({"success": True}), 201
+
+
+@app.route("/transactions", methods=["GET"])
+def get_transactions():
+    if "user_id" not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+    transactions = Transaction.query.filter_by(user_id=session["user_id"]).all()
+    transactions_data = [
+        {
+            "id": t.id,
+            "date": t.date,
+            "merchant_code": t.merchant_code,
+            "amount_cents": t.amount_cents,
+        }
+        for t in transactions
+    ]
+    return jsonify({"transactions": transactions_data})
+
+
 if __name__ == "__main__":
+    create_app()
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host="0.0.0.0", port=port)

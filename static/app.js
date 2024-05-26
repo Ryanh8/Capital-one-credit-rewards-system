@@ -7,6 +7,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let transactions = {};
 
+    // Fetch previous transactions on page load
+    fetch("/transactions")
+        .then(response => response.json())
+        .then(data => {
+            if (data.transactions) {
+                data.transactions.forEach(transaction => {
+                    const transactionId = "T" + (Object.keys(transactions).length + 1).toString().padStart(2, '0');
+                    transactions[transactionId] = transaction;
+
+                    const newRow = transactionsTable.insertRow();
+                    newRow.setAttribute("data-id", transactionId);
+                    newRow.insertCell(0).appendChild(document.createTextNode(transaction.date));
+                    newRow.insertCell(1).appendChild(document.createTextNode(transaction.merchant_code.replace('_', ' ')));
+                    newRow.insertCell(2).appendChild(document.createTextNode((transaction.amount_cents / 100).toFixed(2)));
+                    newRow.insertCell(3).appendChild(document.createTextNode('Pending...'));
+                });
+            }
+        })
+        .catch(error => console.error("Error fetching transactions:", error));
+
     form.addEventListener("submit", function (e) {
         e.preventDefault();
 
@@ -34,16 +54,28 @@ document.addEventListener("DOMContentLoaded", function () {
             const pointsCell = newRow.insertCell(3);
             pointsCell.appendChild(document.createTextNode('Pending...'));
 
-            fetch("/calculate_points", {
+            fetch("/transactions", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ transactionId: transaction })
+                body: JSON.stringify(transaction)
             })
             .then(response => response.json())
             .then(data => {
-                pointsCell.textContent = data.points + ' points';
+                if (data.success) {
+                    fetch(`/transactions?transactionId=${transactionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        pointsCell.textContent = data.points + ' points';
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        pointsCell.textContent = 'Error';
+                    });
+                } else {
+                    pointsCell.textContent = 'Error';
+                }
             })
             .catch(error => {
                 console.error("Error:", error);
