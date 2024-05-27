@@ -15,8 +15,9 @@ app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 #     "DATABASE_URL", "postgresql://ryanhu@localhost/capitalone"
 # )
 app.config["SQLALCHEMY_DATABASE_URI"] = (
-    "postgresql+psycopg2://rodozpcvyghbpw:681f6f4b0a8fc3e2bad459a334620db20cca17cf1e1686e73ee8263dceb5dd89@ec2-54-144-112-84.compute-1.amazonaws.com:5432/d2ii2ugo800k94"
+    "postgresql+psycopg2://owajxsdwbczcgv:e7f255f181834d4823a7af6c797ab82f240a334c3d2b888b9c77485ca85f6a95@ec2-18-207-8-230.compute-1.amazonaws.com:5432/dcpl8bodjknq9c"
 )
+print("lol", os.environ.get("DATABASE_URL"))
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 
