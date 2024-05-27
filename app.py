@@ -14,7 +14,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "your_secret_key")
 # app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 #     "DATABASE_URL", "postgresql://ryanhu@localhost/capitalone"
 # )
-uri = os.environ.get("DATABASE_URL")[:8]
+uri = os.environ.get("DATABASE_URL")[8:]
 pos = "postgresql+psycopg2" + uri
 
 app.config["SQLALCHEMY_DATABASE_URI"] = pos
